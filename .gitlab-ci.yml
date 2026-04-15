@@ -1,0 +1,30 @@
+#$schema: https://gitlab.com/gitlab-org/gitlab/-/raw/v14.4.0-ee/app/assets/javascripts/editor/schema/ci.json
+
+include:
+  - project: "standard/cicd"
+    ref: v1
+    file:
+      - "/standard/common.yml"
+
+Build:
+  script:
+    - echo "Building $CI_PROJECT_NAME"
+  extends: .build_manual
+
+Publish:
+  stage: deploy
+  script:
+    # 1. 安装构建工具
+    - pip install cython build twine
+    # 2. Cython 编译 .py → .so（排除 __init__.py）
+    - python build_cython.py
+    # 3. 删除 .py 源码（仅保留 .so + .pyi + __init__.py）
+    - find src/hb_base -name "*.py" ! -name "__init__.py" -delete
+    # 4. 打包 wheel
+    - python -m build
+    # 5. 发布到 GitLab Package Registry
+    - twine upload --repository gitlab dist/*
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs:
+    - Build
