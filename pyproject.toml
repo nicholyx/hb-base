@@ -39,7 +39,7 @@ build = "cp312-*"
 skip = "cp312-win32 *-musllinux_*"
 
 # 构建前：安装 Cython → 编译 .py → .so → 删除源码
-before-build = "pip install cython && python build_cython.py && find src/hb_base -name '*.py' ! -name '__init__.py' -delete"
+before-build = "pip install cython setuptools && python build_cython.py && find src/hb_base -name '*.py' ! -name '__init__.py' -delete"
 
 # 测试：安装后验证能否正常 import
 test-command = "python -c \"from hb_base import __version__; from hb_base.utils import greet; assert greet('test') == 'Hello from hb-base, test!'\""
