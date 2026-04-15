@@ -11,20 +11,72 @@ Build:
     - echo "Building $CI_PROJECT_NAME"
   extends: .build_manual
 
+# ============================================================
+# 多平台构建：使用 cibuildwheel 为 Linux/macOS/Windows 分别编译
+# 产物输出到 wheelhouse/ 目录
+# ============================================================
+
+Build Linux:
+  stage: build
+  image: python:3.12-slim
+  script:
+    - apt-get update && apt-get install -y gcc build-essential
+    - pip install cibuildwheel cython
+    - cibuildwheel --platform linux
+  artifacts:
+    paths:
+      - wheelhouse/
+  rules:
+    - if: $CI_COMMIT_TAG
+
+# macOS 构建需要 macOS Runner（带 macos tag）
+# 如果没有 macOS Runner，此 job 会被跳过
+Build macOS:
+  stage: build
+  tags:
+    - macos
+  script:
+    - pip install cibuildwheel cython
+    - cibuildwheel --platform macos
+  artifacts:
+    paths:
+      - wheelhouse/
+  rules:
+    - if: $CI_COMMIT_TAG
+  allow_failure: true
+
+# Windows 构建需要 Windows Runner（带 windows tag）
+# 如果没有 Windows Runner，此 job 会被跳过
+Build Windows:
+  stage: build
+  tags:
+    - windows
+  script:
+    - pip install cibuildwheel cython
+    - cibuildwheel --platform windows
+  artifacts:
+    paths:
+      - wheelhouse/
+  rules:
+    - if: $CI_COMMIT_TAG
+  allow_failure: true
+
+# ============================================================
+# 发布：收集所有平台的 wheel，统一发布到 Package Registry
+# ============================================================
+
 Publish:
   stage: deploy
+  image: python:3.12-slim
   script:
-    # 1. 安装构建工具
-    - pip install cython build twine
-    # 2. Cython 编译 .py → .so（排除 __init__.py）
-    - python build_cython.py
-    # 3. 删除 .py 源码（仅保留 .so + .pyi + __init__.py）
-    - find src/hb_base -name "*.py" ! -name "__init__.py" -delete
-    # 4. 打包 wheel
-    - python -m build
-    # 5. 发布到 GitLab Package Registry
-    - twine upload --repository gitlab dist/*
+    - pip install twine
+    - ls wheelhouse/
+    - twine upload --repository gitlab wheelhouse/*.whl
   rules:
     - if: $CI_COMMIT_TAG
   needs:
-    - Build
+    - job: Build Linux
+    - job: Build macOS
+      optional: true
+    - job: Build Windows
+      optional: true

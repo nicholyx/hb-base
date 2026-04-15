@@ -19,17 +19,39 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/hb_base"]
-# 确保 .pyi 存根文件包含在 wheel 中
 artifacts = ["*.pyi"]
 
 [dependency-groups]
 dev = [
   "cython>=3.0.0",
+  "cibuildwheel>=2.22.0",
   "pytest~=8.3.5",
   "pytest-asyncio~=0.25.3",
   "ruff==0.14.8",
   "pyright==1.1.407",
 ]
+
+# ============================================================
+# cibuildwheel 配置 — 多平台构建
+# ============================================================
+[tool.cibuildwheel]
+build = "cp312-*"
+skip = "cp312-win32 *-musllinux_*"
+
+# 构建前：安装 Cython → 编译 .py → .so → 删除源码
+before-build = "pip install cython && python build_cython.py && find src/hb_base -name '*.py' ! -name '__init__.py' -delete"
+
+# 测试：安装后验证能否正常 import
+test-command = "python -c \"from hb_base import __version__; from hb_base.utils import greet; assert greet('test') == 'Hello from hb-base, test!'\""
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]
 
 [tool.ruff]
 target-version = "py312"
