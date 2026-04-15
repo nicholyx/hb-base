@@ -21,7 +21,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-hb_base = ["*.pyi"]
+hb_base = ["*.pyi", "*.so", "*.pyd"]
 
 [dependency-groups]
 dev = [
