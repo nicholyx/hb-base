@@ -1,4 +1,4 @@
-name: Build & Publish Wheels
+name: Build & Release Wheels
 
 on:
   push:
@@ -6,8 +6,7 @@ on:
       - "v*"
 
 permissions:
-  contents: read
-  packages: write
+  contents: write
 
 jobs:
   build-wheels:
@@ -43,8 +42,8 @@ jobs:
           name: wheels-${{ matrix.platform }}
           path: wheelhouse/*.whl
 
-  publish:
-    name: Publish to GitHub Packages
+  release:
+    name: Create GitHub Release
     needs: build-wheels
     runs-on: ubuntu-latest
     steps:
@@ -58,15 +57,8 @@ jobs:
       - name: List wheels
         run: ls -la wheelhouse/
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Create Release and Upload Wheels
+        uses: softprops/action-gh-release@v2
         with:
-          python-version: "3.12"
-
-      - name: Publish to GitHub Packages
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          pip install twine
-          twine upload --repository-url https://pypi.pkg.github.com/${{ github.repository_owner }}/ wheelhouse/*.whl
+          files: wheelhouse/*.whl
+          generate_release_notes: true
