@@ -1,4 +1,4 @@
-name: Build & Release Wheels
+name: Build, Release & Publish to PyPI
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build-wheels:
@@ -42,8 +43,8 @@ jobs:
           name: wheels-${{ matrix.platform }}
           path: wheelhouse/*.whl
 
-  release:
-    name: Create GitHub Release
+  release-and-publish:
+    name: GitHub Release & PyPI Publish
     needs: build-wheels
     runs-on: ubuntu-latest
     steps:
@@ -57,8 +58,13 @@ jobs:
       - name: List wheels
         run: ls -la wheelhouse/
 
-      - name: Create Release and Upload Wheels
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: wheelhouse/*.whl
           generate_release_notes: true
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: wheelhouse/
